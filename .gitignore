@@ -1,0 +1,37 @@
+# --- Entornos Virtuales y Python ---
+env/
+venv/
+__pycache__/
+*.py[cod]
+
+# --- Archivos Sensibles (Seguridad) ---
+.env
+WindowsApp/.env
+
+# --- Bases de Datos y Datos Reales (Privacidad) ---
+*.db
+local_data.db
+gph_data.db
+gph_data_backup_v3.db
+WindowsApp/gph_data.db
+
+# --- Logs y archivos temporales ---
+*.log
+WindowsApp/sync_activity.log
+WindowsApp/startup_check.log
+WindowsApp/audio_devices.log
+WindowsApp/verification_result_clean.log
+WindowsApp/Grabaciones_GPH/
+WindowsApp/sesion_guardada/
+WindowsApp/ms-playwright/
+
+# --- IDEs y Herramientas ---
+.idea/
+.gradle/
+.kotlin/
+*.spec
+
+# --- Basura de compilación ---
+build/
+dist/
+app_bundle.zip

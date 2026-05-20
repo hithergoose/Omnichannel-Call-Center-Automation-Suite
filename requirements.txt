@@ -1,0 +1,10 @@
+customtkinter
+pillow
+requests
+numpy
+pyaudiowpatch
+soundfile
+playwright
+pandas
+openpyxl
+python-dotenv

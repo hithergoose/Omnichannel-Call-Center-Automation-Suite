@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GPH Cartera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .dataTables_wrapper .dataTables_filter {
+            display: none;
+        }
+
+        table.dataTable thead th {
+            background-color: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 8px 25px 8px 10px !important;
+            white-space: nowrap;
+        }
+
+        table.dataTable thead th input {
+            min-width: 100%;
+            width: auto;
+        }
+
+        table.dataTable tbody td {
+            font-size: 12px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+            padding: 8px 10px;
+        }
+
+        /* === PALETA DE COLORES DE FILA (Basado en tu Tkinter) === */
+        .row-rojo-alerta {
+            background-color: #fca5a5 !important;
+        }
+
+        .row-rojo-alerta td {
+            color: #7f1d1d !important;
+            font-weight: 600;
+        }
+
+        .row-amarillo-alerta {
+            background-color: #fef08a !important;
+        }
+
+        .row-amarillo-alerta td {
+            color: #92400e !important;
+            font-weight: 600;
+        }
+
+        .row-moroso {
+            background-color: #ffe5e5 !important;
+        }
+
+        .row-moroso td {
+            color: #991b1b !important;
+        }
+
+        .row-riesgo {
+            background-color: #fff5cc !important;
+        }
+
+        .row-riesgo td {
+            color: #92400e !important;
+        }
+
+        .row-ok {
+            background-color: #e5ffe5 !important;
+        }
+
+        .row-ok td {
+            color: #166534 !important;
+        }
+
+        /* Estilos seleccionados/hover generales */
+        table.dataTable tbody tr.selected {
+            background-color: #3B82F6 !important;
+        }
+
+        table.dataTable tbody tr.selected td {
+            color: white !important;
+        }
+
+        table.dataTable tbody tr:hover:not(.selected) {
+            background-color: #e0f2fe !important;
+            cursor: pointer;
+        }
+
+        /* Paginación */
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 15px !important;
+            font-size: 13px;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 6px !important;
+            border: none !important;
+            padding: 5px 12px !important;
+            margin: 0 2px;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #3b82f6 !important;
+            color: white !important;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+
+        .dataTables_wrapper .dataTables_info {
+            margin-top: 15px !important;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        #main-content {
+            height: calc(100vh - 85px);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #footer-panel {
+            height: 85px;
+            width: 100%;
+            position: fixed;
+            bottom: 0;
+            background-color: #011536;
+            z-index: 50;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="main-content">
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-3 mb-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Proyecto:</label>
+                    <select id="cmbProyecto"
+                        class="text-sm border border-slate-300 rounded px-2 py-1 outline-none focus:border-blue-500 w-48"></select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Condominio:</label>
+                    <select id="cmbCondominio"
+                        class="text-sm border border-slate-300 rounded px-2 py-1 outline-none focus:border-blue-500 w-40">
+                        <option>Todos</option>
+                    </select>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-bold text-slate-800 cursor-pointer">
+                    <input type="checkbox" id="chkSinTelefono" class="w-4 h-4 rounded text-blue-600"> Sin Teléfono
+                </label>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="btnExcel"
+                    class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-1.5 px-4 rounded flex items-center gap-1 shadow-sm transition">📊
+                    Descargar Excel</button>
+                <button id="btnLimpiar"
+                    class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-1.5 px-4 rounded flex items-center gap-1 shadow-sm transition">✖
+                    Limpiar Filtros</button>
+                <button id="btnCargar"
+                    class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-1.5 px-4 rounded flex items-center gap-1 shadow-sm transition">🔄
+                    Actualizar Lista</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden px-4 pb-4">
+            <table id="tablaCartera" class="display w-full">
+                <thead>
+                    <tr>
+                        <th>Nombre Cliente</th>
+                        <th>Lote</th>
+                        <th>Est. Terreno</th>
+                        <th>Est. Cliente</th>
+                        <th>Meses</th>
+                        <th>Anualidad</th>
+                        <th>Mtto</th>
+                        <th>Moratorios</th>
+                        <th>Otros</th>
+                        <th>Adeudo Total</th>
+                        <th>Suma Total</th>
+                        <th>Asesor</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div id="footer-panel" class="flex items-center px-4 gap-6 text-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div class="flex-1 min-w-0">
+            <h2 id="ftr_nombre" class="font-bold text-sm truncate">Seleccione un cliente de la tabla</h2>
+            <div class="flex items-center gap-2 mt-1">
+                <span id="ftr_lote" class="text-xs text-slate-400">Lote: -</span>
+                <span id="ftr_status" class="text-[10px] font-bold bg-slate-700 px-2 py-0.5 rounded">-</span>
+            </div>
+        </div>
+        <div class="flex flex-col items-end">
+            <span id="ftr_adeudo" class="text-xs font-bold text-red-400">Adeudo Total: $0.00</span>
+            <span id="ftr_otros" class="text-xs font-bold text-red-400 mt-1">Otros Adeudos: $0.00</span>
+        </div>
+        <div class="ml-4">
+            <span id="ftr_suma" class="text-[15px] font-bold text-emerald-400">Suma: $0.00</span>
+        </div>
+        <div class="mx-6">
+            <span id="ftr_meses" class="text-xs font-bold text-amber-500">MESES: -</span>
+        </div>
+        <div class="flex flex-col items-end">
+            <span id="ftr_pago" class="text-[11px] font-bold text-slate-200">Últ. Pago: -</span>
+            <span id="ftr_anualidad" class="text-[11px] font-bold text-slate-200 mt-1">Anualidad: -</span>
+        </div>
+        <div class="flex items-center gap-2 ml-4">
+            <select id="cmbTelefonos"
+                class="text-black text-xs border border-slate-300 rounded px-1 py-1.5 w-32 outline-none disabled:bg-slate-200"></select>
+            <button id="btnLlamar"
+                class="bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs px-4 py-2 rounded shadow transition disabled:opacity-50 disabled:cursor-not-allowed">📞
+                LLAMAR</button>
+        </div>
+    </div>
+
+    <script>
+        let table;
+        let selectedRowData = null;
+
+        // REGISTRO DE FILTRO MÁGICO AVANZADO PARA DATATABLES
+        $.fn.dataTable.ext.search.push(
+            function (settings, data, dataIndex, rowData, counter) {
+                let pass = true;
+                $('#tablaCartera thead input').each(function (index) {
+                    let val = $(this).val().trim();
+                    if (!val) return; // Si la cajita está vacía, no filtramos esta columna
+
+                    let cellData = data[index] || "";
+                    let op = "=";
+                    let textToSearch = val;
+
+                    // Detectar operadores matemáticos
+                    if (val.startsWith(">=")) { op = ">="; textToSearch = val.substring(2); }
+                    else if (val.startsWith("<=")) { op = "<="; textToSearch = val.substring(2); }
+                    else if (val.startsWith(">")) { op = ">"; textToSearch = val.substring(1); }
+                    else if (val.startsWith("<")) { op = "<"; textToSearch = val.substring(1); }
+                    else if (val.startsWith("=")) { op = "="; textToSearch = val.substring(1); }
+                    else {
+                        // Búsqueda de texto normal (Ignora mayúsculas y acentos)
+                        if (!cellData.toLowerCase().includes(val.toLowerCase())) {
+                            pass = false;
+                        }
+                        return; // Pasa a la siguiente columna
+                    }
+
+                    // Si llega aquí, es porque escribieron un operador (>, <). Limpiamos el valor para compararlo como número.
+                    let numCell = parseFloat(cellData.replace(/[^0-9.-]+/g, ""));
+                    let numSearch = parseFloat(textToSearch);
+
+                    if (isNaN(numCell)) numCell = 0;
+                    if (isNaN(numSearch)) return; // Si escriben ">hola", lo ignoramos
+
+                    // Evaluaciones matemáticas
+                    if (op === ">" && !(numCell > numSearch)) pass = false;
+                    if (op === "<" && !(numCell < numSearch)) pass = false;
+                    if (op === ">=" && !(numCell >= numSearch)) pass = false;
+                    if (op === "<=" && !(numCell <= numSearch)) pass = false;
+                    if (op === "=" && !(numCell === numSearch)) pass = false;
+                });
+                return pass;
+            }
+        );
+
+        window.addEventListener('pywebviewready', function () {
+            table = $('#tablaCartera').DataTable({
+                scrollY: 'calc(100vh - 290px)',
+                scrollX: true,
+                scrollCollapse: true,
+                paging: true,
+                pageLength: 50,
+                deferRender: true,
+                lengthChange: false,
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                columns: [
+                    { data: 'ncliente', defaultContent: '-', width: '220px' },
+                    { data: 'lote', defaultContent: '-', width: '120px' },
+                    { data: 'statusTerreno', defaultContent: '-', width: '110px' },
+                    { data: 'nestatus', defaultContent: '-', width: '100px' },
+                    { data: 'mesesadeudo', defaultContent: '0', width: '60px' },
+                    { data: 'anualidad', defaultContent: '$0.00', width: '80px' },
+                    { data: 'adeudo', defaultContent: '$0.00', width: '80px' },
+                    { data: 'adeudoM', defaultContent: '$0.00', width: '80px' },
+                    { data: 'adeudo_otros', defaultContent: '$0.00', width: '80px' },
+                    { data: 'totalAdeudo', defaultContent: '$0.00', width: '90px' },
+                    { data: 'totalAdeudoLL', width: '100px', render: function (data, type, row) { return type === 'sort' ? row.totalAdeudoLL_raw : data; } },
+                    { data: 'asesorNombre', defaultContent: '-', width: '160px' }
+                ],
+                // LÓGICA DE COLORES DE FILA (Igual a tu versión Tkinter)
+                createdRow: function (row, data, dataIndex) {
+                    let st_terreno = (data.statusTerreno || "").toUpperCase();
+                    let asesor = (data.asesorNombre || "").toUpperCase();
+                    let st_raw = (data.nestatus || "").toUpperCase();
+
+                    let celular = (data.ccelular || "").trim();
+                    let fijo = (data.cfijo || "").trim();
+                    let tiene_telefono = (celular && celular !== "None" && celular !== "0") || (fijo && fijo !== "None" && fijo !== "0");
+
+                    let tagClass = "text-slate-700"; // Default
+
+                    if (["MOROSO", "VENCIDO", "COBRANZA"].includes(st_raw)) tagClass = "row-moroso";
+                    else if (["ATRASO", "PENDIENTE"].includes(st_raw)) tagClass = "row-riesgo";
+                    else if (["AL CORRIENTE", "LIQUIDADO"].includes(st_raw)) tagClass = "row-ok";
+
+                    // Sobrescribir colores por reglas prioritarias
+                    if (st_terreno === "JURÍDICO" || asesor.includes("NO GESTIONABLE")) {
+                        tagClass = "row-rojo-alerta";
+                    } else if (!tiene_telefono) {
+                        tagClass = "row-amarillo-alerta";
+                    }
+
+                    if (tagClass !== "text-slate-700") {
+                        $(row).addClass(tagClass);
+                    }
+                },
+                initComplete: function () {
+                    this.api().columns().every(function () {
+                        let column = this;
+                        let title = column.header().textContent;
+
+                        let input = document.createElement('input');
+                        input.type = 'text';
+                        input.placeholder = title;
+                        input.className = 'w-full bg-transparent text-[#475569] placeholder-[#475569] font-bold text-[11px] uppercase outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 rounded px-1 py-1 transition-all';
+
+                        $(column.header()).empty().append(input);
+
+                        $(input).on('click', function (e) { e.stopPropagation(); });
+
+                        // ¡AQUÍ MANDAMOS DIBUJAR LA TABLA CADA QUE ESCRIBEN!
+                        $(input).on('keyup change', function () {
+                            table.draw();
+                        });
+                    });
+                }
+            });
+
+            // BOTÓN DE EXCEL
+            document.getElementById('btnExcel').addEventListener('click', function () {
+                // Obtenemos solo las filas que cumplen los filtros actuales de DataTables
+                let filteredData = table.rows({ filter: 'applied' }).data().toArray();
+
+                if (filteredData.length === 0) {
+                    alert("No hay datos para exportar con los filtros actuales.");
+                    return;
+                }
+
+                let btn = this;
+                btn.innerText = "⏳ Generando...";
+                btn.disabled = true;
+
+                // Mandamos EXACTAMENTE esos datos filtrados a Python
+                window.pywebview.api.exportar_excel_datos(filteredData).then(function (res) {
+                    btn.innerText = "📊 Descargar Excel";
+                    btn.disabled = false;
+                });
+            });
+
+            // Lógica Footer (Clics)
+            $('#tablaCartera tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) return;
+                table.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+
+                selectedRowData = table.row(this).data();
+                if (!selectedRowData) return;
+
+                document.getElementById('ftr_nombre').innerText = (selectedRowData.ncliente || "DESCONOCIDO").toUpperCase();
+                document.getElementById('ftr_lote').innerText = "Lote: " + (selectedRowData.lote || "-");
+                document.getElementById('ftr_status').innerText = (selectedRowData.nestatus || "N/A").toUpperCase();
+
+                document.getElementById('ftr_adeudo').innerText = "Adeudo Total: " + selectedRowData.totalAdeudo;
+                document.getElementById('ftr_otros').innerText = "Otros Adeudos: " + selectedRowData.adeudo_otros;
+                document.getElementById('ftr_suma').innerText = "Suma: " + selectedRowData.totalAdeudoLL;
+
+                let meses = parseInt(selectedRowData.mesesadeudo || 0);
+                let ftr_meses = document.getElementById('ftr_meses');
+                ftr_meses.innerText = "MESES DE ADEUDO: " + meses;
+                ftr_meses.className = meses >= 3 ? "text-xs font-bold text-red-500" : (meses > 0 ? "text-xs font-bold text-amber-500" : "text-xs font-bold text-emerald-400");
+
+                document.getElementById('ftr_pago').innerText = "Últ. Pago: " + (selectedRowData.fultpago !== "0000-00-00" ? selectedRowData.fultpago : "-");
+                document.getElementById('ftr_anualidad').innerText = "Anualidad: " + selectedRowData.anualidad;
+
+                let str_tels = (selectedRowData.ccelular || "") + " " + (selectedRowData.cfijo || "");
+                let num_matches = str_tels.match(/\d{8,13}/g) || [];
+                let nums_unicos = [...new Set(num_matches)];
+
+                let cmb = document.getElementById('cmbTelefonos');
+                cmb.innerHTML = "";
+                if (nums_unicos.length > 0) {
+                    nums_unicos.forEach(num => cmb.appendChild(new Option(num, num)));
+                    cmb.disabled = false;
+                    document.getElementById('btnLlamar').disabled = false;
+                } else {
+                    cmb.appendChild(new Option("Sin números", ""));
+                    cmb.disabled = true;
+                    document.getElementById('btnLlamar').disabled = true;
+                }
+            });
+
+            $('#tablaCartera tbody').on('dblclick', 'tr', function () {
+                let data = table.row(this).data();
+                if (data) window.pywebview.api.abrir_modal_detalles(data);
+            });
+
+            document.getElementById('btnLlamar').addEventListener('click', function () {
+                let num = document.getElementById('cmbTelefonos').value;
+                if (num && selectedRowData) {
+                    if (num.startsWith("52") && num.length == 12) num = num.substring(2);
+                    else if (num.startsWith("521") && num.length == 13) num = num.substring(3);
+                    window.pywebview.api.hacer_llamada(num, selectedRowData);
+                }
+            });
+
+            function cargarDatos() {
+                let btn = document.getElementById('btnCargar');
+                btn.disabled = true;
+                document.getElementById('btnText').innerText = "Cargando...";
+
+                let filtros = {
+                    proyecto: document.getElementById('cmbProyecto').value,
+                    condominio: document.getElementById('cmbCondominio').value,
+                    sinTelefono: document.getElementById('chkSinTelefono').checked
+                };
+
+                window.pywebview.api.get_cartera_data(filtros).then(function (contactos_str) {
+                    // DESCOMPRIMIMOS EL TEXTO GIGANTE A OBJETOS JS
+                    let contactos = JSON.parse(contactos_str);
+
+                    table.clear();
+                    table.rows.add(contactos);
+                    table.draw();
+                    btn.disabled = false;
+                    document.getElementById('btnText').innerText = "Actualizar Lista";
+                }).catch(function (err) {
+                    console.error("Error: ", err);
+                    btn.disabled = false;
+                    document.getElementById('btnText').innerText = "Actualizar Lista";
+                    alert("Hubo un problema al cargar los datos.");
+                });
+            }
+
+            window.pywebview.api.get_filtros_iniciales().then(res => {
+                let cmb = document.getElementById('cmbProyecto');
+                res.proyectos.forEach(p => cmb.appendChild(new Option(p, p)));
+                cargarDatos();
+            });
+
+            document.getElementById('cmbProyecto').addEventListener('change', function () {
+                window.pywebview.api.get_condominios(this.value).then(conds => {
+                    let cmb = document.getElementById('cmbCondominio');
+                    cmb.innerHTML = "";
+                    conds.forEach(c => cmb.appendChild(new Option(c, c)));
+                    cargarDatos();
+                });
+            });
+            document.getElementById('cmbCondominio').addEventListener('change', cargarDatos);
+            document.getElementById('chkSinTelefono').addEventListener('change', cargarDatos);
+            document.getElementById('btnCargar').addEventListener('click', cargarDatos);
+
+            document.getElementById('btnLimpiar').addEventListener('click', function () {
+                document.getElementById('cmbProyecto').value = "Todos";
+                document.getElementById('cmbCondominio').innerHTML = '<option value="Todos">Todos</option>';
+                document.getElementById('chkSinTelefono').checked = false;
+
+                $('#tablaCartera thead input').val('');
+                table.search('').columns().search('').draw();
+
+                cargarDatos();
+            });
+        });
+    </script>
+</body>
+
+</html>
